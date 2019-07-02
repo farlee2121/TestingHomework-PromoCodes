@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,53 +9,66 @@ namespace TestingHomework_Discounts
     {
         public Cart RedeemPromo(string code, Cart cart)
         {
-            PromoRepository db = new PromoRepository();
-            var dbPromo = db.PromoCodes.FirstOrDefault(_dbPromo => _dbPromo.Code == code);
-
-            if (dbPromo != null)
+            using (PromoRepository db = new PromoRepository())
             {
-                DateTime now = DateTime.UtcNow;
-                if(now < dbPromo.StartDate)
+
+                var dbPromo = db.PromoCodes.Include(_promo => _promo.Product).FirstOrDefault(_dbPromo => _dbPromo.Code == code);
+
+                if (dbPromo != null)
                 {
-                    cart.Errors.Add(new PromoError()
+                    DateTime now = DateTime.UtcNow;
+                    if (now < dbPromo.StartDate)
                     {
-                        ErrorCode = PromoErrorType.NotStarted,
-                        Message = $"Promo starts on {dbPromo.StartDate}"
-                    });
+                        cart.PromoErrors.Add(new PromoError()
+                        {
+                            ErrorCode = PromoErrorType.NotStarted,
+                            Message = $"Promo starts on {dbPromo.StartDate}"
+                        });
+                    }
+                    if (dbPromo.EndDate < now)
+                    {
+                        cart.PromoErrors.Add(new PromoError()
+                        {
+                            ErrorCode = PromoErrorType.Expired,
+                            Message = $"Promo expired"
+                        });
+                    }
+                    if (dbPromo.RedemptionCount >= dbPromo.MaxRedemptionCount)
+                    {
+                        cart.PromoErrors.Add(new PromoError()
+                        {
+                            ErrorCode = PromoErrorType.MaxRedemptions,
+                            Message = $"Promo expired"
+                        });
+                    }
+
+                    if (cart.Products.Select(_product => _product.Id).Contains(dbPromo.Id) == false)
+                    {
+                        cart.PromoErrors.Add(new PromoError()
+                        {
+                            ErrorCode = PromoErrorType.NoRelatedProduct,
+                            Message = "Promo does not apply to any items in the cart"
+                        });
+                    }
+
+                    dbPromo.RedemptionCount += 1;
+                    db.SaveChanges();
+
+                    // apply promo
+                    cart.PromoCodes.Add(dbPromo);
                 }
-                if (dbPromo.EndDate < now) 
+                else
                 {
-                    cart.Errors.Add(new PromoError()
+                    cart.PromoErrors.Add(new PromoError()
                     {
-                        ErrorCode = PromoErrorType.Expired,
-                        Message = $"Promo expired"
-                    });
-                }
-                if (dbPromo.RedemptionCount >= dbPromo.MaxRedemptionCount)
-                {
-                    cart.Errors.Add(new PromoError()
-                    {
-                        ErrorCode = PromoErrorType.MaxRedemptions,
-                        Message = $"Promo expired"
+                        ErrorCode = PromoErrorType.InvalidPromo,
+                        Message = $"Promo {code} doesn't exist"
                     });
                 }
 
-                dbPromo.RedemptionCount += 1;
-                db.SaveChanges();
-
-                // apply promo
-                cart.PromoCodes.Add(dbPromo);
+                return cart;
             }
-            else
-            {
-                cart.Errors.Add(new PromoError()
-                {
-                    ErrorCode = PromoErrorType.InvalidPromo,
-                    Message = $"Promo {code} doesn't exist"
-                });
-            }
 
-            return cart;
         }
 
         //TODO: cart price calculator
@@ -72,12 +86,14 @@ namespace TestingHomework_Discounts
 
         public int MaxRedemptionCount { get; set; }
         public int RedemptionCount { get; set; }
+
+        public Product Product { get; set; }
     }
 
     public class Cart
     {
         public Id Id { get; set; }
-        
+
         // this is a candidate for argument complexity, nest actual objects here
         public User User { get; set; }
 
@@ -85,7 +101,7 @@ namespace TestingHomework_Discounts
         public IEnumerable<Product> Products { get; set; }
 
         public ICollection<PromoCode> PromoCodes { get; set; } = new List<PromoCode>();
-        public ICollection<PromoError> Errors { get; set; } = new List<PromoError>();
+        public ICollection<PromoError> PromoErrors { get; set; } = new List<PromoError>();
     }
 
     public class User
@@ -113,5 +129,6 @@ namespace TestingHomework_Discounts
         NotStarted = 2,
         Expired = 3,
         MaxRedemptions = 4,
+        NoRelatedProduct = 5,
     }
 }
