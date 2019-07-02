@@ -72,6 +72,68 @@ namespace TestingHomework_Discounts
         }
 
         //TODO: cart price calculator
+        public CartDiscountResult CalculateDiscounts(Cart cart)
+        {
+            double originalPrice = cart.Products.Sum(_product => _product.Price);
+
+            double calculatedPrice = originalPrice;
+            List<ProductDiscountResult> productDiscounts = new List<ProductDiscountResult>();
+            foreach (var promo in cart.PromoCodes)
+            {
+                if(promo.Product != null)
+                {
+                    var discountedPrice = EnforceZeroMinimum(promo.Product.Price - promo.DollarDiscount);
+                    productDiscounts.Add(new ProductDiscountResult()
+                    {
+                        ProductId = promo.Product.Id,
+                        FinalPrice = discountedPrice,
+                        OriginalPrice = promo.Product.Price
+                    });
+                    calculatedPrice -= discountedPrice;
+                }
+                else
+                {
+                    calculatedPrice -= promo.DollarDiscount;
+                }
+            }
+
+            double finalPrice = EnforceZeroMinimum(calculatedPrice);
+
+            return new CartDiscountResult()
+            {
+                OriginalPrice = originalPrice,
+                FinalPrice = finalPrice,
+                ProductDiscounts = productDiscounts,
+            };
+        }
+
+        private double EnforceZeroMinimum(double price)
+        {
+            if(price >= 0)
+            {
+                return price;
+            }
+            else
+            {
+                return 0;
+            }
+        }
+    }
+
+
+    public class CartDiscountResult
+    {
+        public double OriginalPrice { get; set; }
+        public double FinalPrice { get; set; }
+        public IEnumerable<ProductDiscountResult> ProductDiscounts { get; set; }
+
+        
+    }
+    public class ProductDiscountResult
+    {
+        public Id ProductId { get; set; }
+        public double OriginalPrice { get; set; }
+        public double FinalPrice { get; set; }
     }
 
     public class PromoCode
@@ -79,7 +141,7 @@ namespace TestingHomework_Discounts
         public Id Id { get; set; }
         public string Code { get; set; }
 
-        public double Discount { get; set; }
+        public double DollarDiscount { get; set; }
 
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
@@ -112,6 +174,8 @@ namespace TestingHomework_Discounts
     public class Product
     {
         public Id Id { get; set; }
+        public double Price { get; set; }
+        public string Description { get; set; }
     }
 
     public class PromoError
