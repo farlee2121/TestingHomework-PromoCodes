@@ -8,7 +8,7 @@ namespace TestingHomework_Discounts
     {
         public Cart RedeemPromo(string code, Cart cart)
         {
-            PromoRespository db = new PromoRespository();
+            PromoRepository db = new PromoRepository();
             var dbPromo = db.PromoCodes.FirstOrDefault(_dbPromo => _dbPromo.Code == code);
 
             if (dbPromo != null)
@@ -30,6 +30,17 @@ namespace TestingHomework_Discounts
                         Message = $"Promo expired"
                     });
                 }
+                if (dbPromo.RedemptionCount >= dbPromo.MaxRedemptionCount)
+                {
+                    cart.Errors.Add(new PromoError()
+                    {
+                        ErrorCode = PromoErrorType.MaxRedemptions,
+                        Message = $"Promo expired"
+                    });
+                }
+
+                dbPromo.RedemptionCount += 1;
+                db.SaveChanges();
 
                 // apply promo
                 cart.PromoCodes.Add(dbPromo);
@@ -38,19 +49,15 @@ namespace TestingHomework_Discounts
             {
                 cart.Errors.Add(new PromoError()
                 {
-                    ErrorCode = PromoErrorType.NoMatch,
+                    ErrorCode = PromoErrorType.InvalidPromo,
                     Message = $"Promo {code} doesn't exist"
                 });
             }
 
             return cart;
         }
-    }
 
-
-    public class PromoRespository
-    {
-        public List<PromoCode> PromoCodes { get; set; }
+        //TODO: cart price calculator
     }
 
     public class PromoCode
@@ -63,7 +70,8 @@ namespace TestingHomework_Discounts
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
-        
+        public int MaxRedemptionCount { get; set; }
+        public int RedemptionCount { get; set; }
     }
 
     public class Cart
@@ -101,9 +109,9 @@ namespace TestingHomework_Discounts
     public enum PromoErrorType
     {
         Unknown = 0,
-        NoMatch = 1,
+        InvalidPromo = 1,
         NotStarted = 2,
         Expired = 3,
-        //NoRemainingUses = 3,
+        MaxRedemptions = 4,
     }
 }
