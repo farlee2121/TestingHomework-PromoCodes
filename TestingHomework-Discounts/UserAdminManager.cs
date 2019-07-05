@@ -34,5 +34,13 @@ namespace TestingHomework_Discounts
 
             return user;
         }
+
+        public IEnumerable<User> GetAllUsers()
+        {
+            using (PromoRepository db = new PromoRepository())
+            {
+                return db.Users.ToList();
+            }
+        }
     }
 }
