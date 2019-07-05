@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace TestingHomework_Discounts.Managers
 {
-    public class PromoValidationManager
+    public class CheckoutManager
     {
         public Cart RedeemPromo(string code, Cart cart)
         {
@@ -117,6 +117,91 @@ namespace TestingHomework_Discounts.Managers
             {
                 return 0;
             }
+        }
+
+        public Cart GetUserCart(Guid userId)
+        {
+            using (PromoRepository db = new PromoRepository())
+            {
+                Cart userCart = db.Carts
+                    .Include(_cart => _cart.User)
+                    .FirstOrDefault(_cart => _cart.User.Id == userId);
+
+                userCart.Products = db.CartProducts.Include(cp => cp.Product).Where(cp => cp.CartId == userCart.Id).Select(cp => cp.Product).ToList();
+                userCart.PromoCodes = db.CartPromos.Include(cp => cp.PromoCode).Where(cp => cp.CartId == userCart.Id).Select(cp => cp.PromoCode).ToList();
+
+                return userCart;
+            }
+        }
+
+        public Cart SaveCart(Cart cart)
+        {
+            using (PromoRepository db = new PromoRepository())
+            {
+                var productCache = cart.Products.ToList();
+                var promoCache = cart.PromoCodes.ToList();
+                cart.Products = new List<Product>();
+                cart.PromoCodes = new List<PromoCode>();
+
+                if (cart.User.Id == Guid.Empty)
+                {
+                    db.Users.Add(cart.User);
+                }
+                else
+                {
+                    db.Users.Attach(cart.User);
+                    db.Entry(cart.User).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                }
+
+
+                if (cart.Id == Guid.Empty)
+                {
+                    db.Carts.Add(cart);
+                }
+                else
+                {
+                    db.Carts.Attach(cart);
+                    db.Entry(cart).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
+                }
+
+                db.SaveChanges();
+
+                var existingProductRelations = db.CartProducts.Where(cp => cp.CartId == cart.Id);
+                var existingProductIds = existingProductRelations.Select(cp => cp.ProductId);
+                var requestedProductIds = productCache.Select(product => product.Id);
+
+                var toAddProductIds = requestedProductIds.Except(existingProductIds);
+                var toRemoveProductIds = existingProductIds.Except(requestedProductIds);
+
+                var toAddCartProductModels = toAddProductIds.Select(productId => new CartProduct() { CartId = cart.Id, ProductId = productId });
+                db.CartProducts.AddRange(toAddCartProductModels);
+                
+                foreach (var toRemoveId in toRemoveProductIds)
+                {
+                    db.CartProducts.Remove(db.CartProducts.First(cp => cp.CartId == cart.Id && cp.ProductId == toRemoveId));
+                }
+
+                var existingPromoRelations = db.CartPromos.Where(cp => cp.CartId == cart.Id);
+                var existingPromoIds = existingPromoRelations.Select(cp => cp.PromoCodeId);
+                var requestedPromoIds = promoCache.Select(product => product.Id);
+
+                var toAddPromoIds = requestedPromoIds.Except(existingPromoIds);
+                var toRemovePromoIds = existingPromoIds.Except(requestedPromoIds);
+
+                var toAddCartPromoModels = toAddPromoIds.Select(promoId => new CartPromo() { CartId = cart.Id, PromoCodeId = promoId });
+                db.CartPromos.AddRange(toAddCartPromoModels);
+
+                foreach (var toRemoveId in toRemoveProductIds)
+                {
+                    db.CartPromos.Remove(db.CartPromos.First(cp => cp.CartId == cart.Id && cp.PromoCodeId == toRemoveId));
+                }
+
+                db.SaveChanges();
+                cart.Products = productCache;
+                cart.PromoCodes = promoCache;
+            }
+
+            return cart;
         }
     }
 }

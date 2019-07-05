@@ -7,9 +7,9 @@ namespace TestingHomework_Discounts
     {
         public Guid Id { get; set; }
 
-        // this is a candidate for argument complexity, nest actual objects here
-        public User User { get; set; }
+        public Guid UserId { get; set; }
 
+        public User User { get; set; }
 
         public IEnumerable<Product> Products { get; set; }
 
