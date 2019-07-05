@@ -4,7 +4,7 @@ namespace TestingHomework_Discounts
 {
     public class PromoCode
     {
-        public Id Id { get; set; }
+        public Guid Id { get; set; }
         public string Code { get; set; }
 
         public double DollarDiscount { get; set; }

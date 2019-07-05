@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace TestingHomework_Discounts
 {
     public class Cart
     {
-        public Id Id { get; set; }
+        public Guid Id { get; set; }
 
         // this is a candidate for argument complexity, nest actual objects here
         public User User { get; set; }

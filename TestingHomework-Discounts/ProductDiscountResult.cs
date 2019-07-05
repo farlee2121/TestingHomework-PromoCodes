@@ -1,8 +1,10 @@
-﻿namespace TestingHomework_Discounts
+﻿using System;
+
+namespace TestingHomework_Discounts
 {
     public class ProductDiscountResult
     {
-        public Id ProductId { get; set; }
+        public Guid ProductId { get; set; }
         public double OriginalPrice { get; set; }
         public double FinalPrice { get; set; }
     }

@@ -21,6 +21,10 @@ namespace TestingHomework_Discounts
         {
             base.OnModelCreating(modelBuilder);
             modelBuilder.Entity<PromoCode>().HasOne<Product>(promo => promo.Product);
+
+            modelBuilder.Entity<PromoCode>().HasKey(promo => promo.Id);
+            modelBuilder.Entity<Product>().HasKey(product => product.Id);
+            modelBuilder.Entity<User>().HasKey(user => user.Id);
         }
     }
 }

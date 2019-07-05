@@ -5,7 +5,7 @@ using System.Text;
 
 namespace TestingHomework_Discounts.Managers
 {
-    class ProductManager
+    public class ProductAdminManager
     {
         public IEnumerable<Product> GetAllProducts()
         {
@@ -19,7 +19,7 @@ namespace TestingHomework_Discounts.Managers
         {
             using (PromoRepository db = new PromoRepository())
             {
-                if (product.Id.IsDefault())
+                if (product.Id == Guid.Empty)
                 {
                     db.Products.Add(product);
                 }
@@ -34,7 +34,7 @@ namespace TestingHomework_Discounts.Managers
             return product;
         }
 
-        public Product GetProduct(Id productId)
+        public Product GetProduct(Guid productId)
         {
             using (PromoRepository db = new PromoRepository())
             {

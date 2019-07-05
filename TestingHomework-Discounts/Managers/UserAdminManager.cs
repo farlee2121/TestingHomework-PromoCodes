@@ -5,10 +5,10 @@ using System.Text;
 
 namespace TestingHomework_Discounts.Managers
 {
-    class UserManager
+    public class UserAdminManager
     {
 
-        public User GetUser(Id userId)
+        public User GetUser(Guid userId)
         {
             using (PromoRepository db = new PromoRepository())
             {
@@ -20,7 +20,7 @@ namespace TestingHomework_Discounts.Managers
         {
             using (PromoRepository db = new PromoRepository())
             {
-                if (user.Id.IsDefault())
+                if (user.Id == Guid.Empty)
                 {
                     db.Users.Add(user);
                 }
