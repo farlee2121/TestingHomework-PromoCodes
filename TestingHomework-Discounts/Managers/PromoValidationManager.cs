@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace TestingHomework_Discounts
+namespace TestingHomework_Discounts.Managers
 {
     public class PromoValidator
     {

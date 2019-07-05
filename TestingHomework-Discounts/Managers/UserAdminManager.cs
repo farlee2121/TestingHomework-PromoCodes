@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace TestingHomework_Discounts
+namespace TestingHomework_Discounts.Managers
 {
     class UserManager
     {
