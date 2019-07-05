@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace TestingHomework_Discounts.Managers
 {
-    public class PromoValidator
+    public class PromoValidationManager
     {
         public Cart RedeemPromo(string code, Cart cart)
         {
