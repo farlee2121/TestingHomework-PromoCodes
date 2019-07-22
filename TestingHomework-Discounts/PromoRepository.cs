@@ -5,7 +5,7 @@ using System.Text;
 
 namespace TestingHomework_Discounts
 {
-    class PromoRepository : DbContext
+    public class PromoRepository : DbContext
     {
         public DbSet<PromoCode> PromoCodes { get; set; }
         public DbSet<Product> Products { get; set; }
