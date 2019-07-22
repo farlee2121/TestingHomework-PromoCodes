@@ -1,18 +1,30 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
-using Xunit;
+//using Xunit;
 using TestingHomework_Discounts.Managers;
 using TestingHomework_Discounts;
 using System.Linq;
 
+
+
+
+
+using DeepEqual;
+using DeepEqual.Syntax;
+using NUnit.Framework;
+
+using Test.NUnitExtensions;
+using Tests;
+
 namespace TestingHomework.Tests
 {
-    public class ProductAdminManagerTests
+    
+    public class ProductAdminManagerTests : AccessorTestBase
     {
         ProductAdminManager manager = new ProductAdminManager();
 
-        [Fact]
+        [Test]
         public void GetProduct_NoProduct()
         {
 
@@ -21,7 +33,7 @@ namespace TestingHomework.Tests
 
         }
 
-        [Fact]
+        [Test]
         public void GetProduct_Success()
         {
             var savedProduct = manager.SaveProduct(new Product()
@@ -31,13 +43,13 @@ namespace TestingHomework.Tests
             });
 
             var actualProduct = manager.GetProduct(savedProduct.Id);
-            Assert.Equal(savedProduct.Id, actualProduct.Id);
-            Assert.Equal(savedProduct.Description, actualProduct.Description);
-            Assert.Equal(savedProduct.Price, actualProduct.Price);
+            Assert.Equals(savedProduct.Id, actualProduct.Id);
+            Assert.Equals(savedProduct.Description, actualProduct.Description);
+            Assert.Equals(savedProduct.Price, actualProduct.Price);
 
         }
 
-        [Fact]
+        [Test]
         public void SaveProduct_NewProduct()
         {
             var savedProduct = manager.SaveProduct(new Product()
@@ -47,11 +59,11 @@ namespace TestingHomework.Tests
             });
 
             Assert.False(savedProduct.Id == Guid.Empty);
-            Assert.Equal("asdfas", savedProduct.Description);
-            Assert.Equal(10.50, savedProduct.Price);
+            Assert.AreEqual("asdfas", savedProduct.Description);
+            Assert.AreEqual(10.50, savedProduct.Price);
         }
 
-        [Fact]
+        [Test]
         public void SaveProduct_UpdateProduct()
         {
             var existingProduct = manager.SaveProduct(new Product()
@@ -64,12 +76,12 @@ namespace TestingHomework.Tests
 
             var updatedProduct = manager.SaveProduct(existingProduct);
 
-            Assert.Equal(existingProduct.Id, updatedProduct.Id);
-            Assert.Equal("asdfas", existingProduct.Description);
-            Assert.Equal(1.00, existingProduct.Price);
+            Assert.AreEqual(existingProduct.Id, updatedProduct.Id);
+            Assert.AreEqual("asdfas", existingProduct.Description);
+            Assert.AreEqual(1.00, existingProduct.Price);
         }
 
-        [Fact]
+        [Test]
         public void GetAllProducts()
         {
             List<Product> expectedProducts = new List<Product>();
@@ -94,15 +106,73 @@ namespace TestingHomework.Tests
             var actualProductList = manager.GetAllProducts();
 
 
-            Assert.Equal(expectedProducts.Count, actualProductList.Count());
+            Assert.AreEqual(expectedProducts.Count, actualProductList.Count());
             foreach (Product expectedProduct in actualProductList)
             {
                 var actualProduct = actualProductList.FirstOrDefault(_product => _product.Id == expectedProduct.Id);
                 Assert.NotNull(actualProduct);
-                Assert.Equal(expectedProduct.Id, actualProduct.Id);
-                Assert.Equal(expectedProduct.Description, actualProduct.Description);
-                Assert.Equal(expectedProduct.Price, actualProduct.Price);
+                Assert.AreEqual(expectedProduct.Id, actualProduct.Id);
+                Assert.AreEqual(expectedProduct.Description, actualProduct.Description);
+                Assert.AreEqual(expectedProduct.Price, actualProduct.Price);
             }
+        }
+
+
+
+        /// <summary>
+        /// For Review
+        /// </summary>
+        [Test]
+        public void GetProduct_Success_Final()
+        {
+            //// arrange           
+            Product expectedItem = dataPrep.ProductItems.CreateData();
+            //// act
+            Product actualItem = manager.GetProduct(expectedItem.Id);
+            ////assert
+            expectedItem.WithDeepEqual(actualItem).Assert();
+        }
+
+        [Test]
+        public void GetAllProducts_Final()
+        {
+            //// arrange
+            int expectedItemCount = 5;
+            IEnumerable<Product> expectedItemList = dataPrep.ProductItems.CreateManyForList(expectedItemCount);
+
+            //// act
+            IEnumerable<Product> actualItemList = manager.GetAllProducts();
+
+            ////assert
+            expectedItemList.WithDeepEqual(actualItemList).Assert();
+        }
+
+        [Test]
+        public void SaveProduct_NewProduct_Final()
+        {
+            // arrange
+            Product expectedItem = dataPrep.ProductItems.CreateData(isPersisted: false);
+
+            // act
+            Product actualItem = manager.SaveProduct(expectedItem);
+
+            //assert
+            Assert.IsNotNull(actualItem.Id);
+            expectedItem.WithDeepEqual(actualItem).IgnoreSourceProperty((ti) => ti.Id);
+        }
+
+
+        [Test]
+        public void SaveProduct_UpdateProduct_Final()
+        {
+            // arrange
+            Product expectedItem = dataPrep.ProductItems.CreateData();
+            expectedItem.Description = Guid.NewGuid().ToString();
+            // act
+            Product actualItem = manager.SaveProduct(expectedItem);
+
+            ////assert
+            expectedItem.ShouldDeepEqual(actualItem);
         }
     }
 }
