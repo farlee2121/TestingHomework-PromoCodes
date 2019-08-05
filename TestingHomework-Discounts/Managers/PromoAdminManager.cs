@@ -2,37 +2,35 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using TestingHomework_Discounts.Accessors;
 
 namespace TestingHomework_Discounts.Managers
 {
-    public class PromoAdminManager
+    public interface IPromoAdminManager
     {
+        IEnumerable<PromoCode> GetAllPromos();
+        PromoCode SavePromo(PromoCode promo);       
+
+    }
+    public class PromoAdminManager: IPromoAdminManager
+    {
+
+        IPromoAdminAccessor promoAdminAccessor;
+        public PromoAdminManager(IPromoAdminAccessor promoAdminAccessor)
+        {
+            this.promoAdminAccessor = promoAdminAccessor;
+        }
 
         public IEnumerable<PromoCode> GetAllPromos()
         {
-            using (PromoRepository db = new PromoRepository())
-            {
-                return db.PromoCodes.ToList();
-            }
+            
+                return promoAdminAccessor.GetAllPromos();
+           
         }
 
         public PromoCode SavePromo(PromoCode promo)
         {
-            using (PromoRepository db = new PromoRepository())
-            {
-                if (promo.Id == Guid.Empty)
-                {
-                    db.PromoCodes.Add(promo);
-                }
-                else
-                {
-                    db.PromoCodes.Attach(promo);
-                    db.Entry(promo).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                }
-                db.SaveChanges();
-            }
-
-            return promo;
+            return promoAdminAccessor.SavePromo(promo);
         }
     }
 }

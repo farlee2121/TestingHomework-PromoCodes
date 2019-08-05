@@ -2,17 +2,25 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using TestingHomework.Tests.Data;
+using TestingHomework.Tests.DTOs;
+using TestingHomework_Discounts.Models;
 
 namespace TestingHomework_Discounts
 {
-    class PromoRepository : DbContext
+    public class PromoRepository : DbContext
     {
-        public DbSet<PromoCode> PromoCodes { get; set; }
-        public DbSet<Product> Products { get; set; }
-        public DbSet<User> Users { get; set; }
+        public DbSet<PromoCodeDTO> PromoCodes { get; set; }
+        public DbSet<ProductDTO> Products { get; set; }
+        public DbSet<UserDTO> Users { get; set; }
         public DbSet<Cart> Carts { get; set; }
         public DbSet<CartProduct> CartProducts { get; set; }
         public DbSet<CartPromo> CartPromos { get; set; }
+
+        public PromoRepository() : base()
+        {
+        }
+
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -42,5 +50,24 @@ namespace TestingHomework_Discounts
             modelBuilder.Entity<CartPromo>().HasOne<PromoCode>(cp => cp.PromoCode);
             modelBuilder.Entity<CartPromo>().HasOne<Cart>(cp => cp.Cart);
         }
+        public override int SaveChanges()
+        {
+            return base.SaveChanges();
+        }
+            public T AddOrUpdate<T>(T entity) where T : class, IDatabaseObjectBase
+        {
+            if (Id.Default() == entity.Id)
+            {
+                this.Set<T>().Add(entity);
+            }
+            else
+            {
+                this.Set<T>().Attach(entity);
+                this.Entry(entity).State = EntityState.Modified;
+            }
+
+            return entity;
+        }
+
     }
 }

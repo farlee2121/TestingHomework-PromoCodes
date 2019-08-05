@@ -2,45 +2,43 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using TestingHomework_Discounts.Accessors;
 
 namespace TestingHomework_Discounts.Managers
 {
-    public class UserAdminManager
+    public interface IUserAdminManager
     {
+        User GetUser(Guid userId);
+        User SaveUser(User user);
+        IEnumerable<User> GetAllUsers();
+
+    }
+    public class UserAdminManager : IUserAdminManager
+    {
+
+        IUserAdminAccessor userAdminAccessor;
+        public UserAdminManager(IUserAdminAccessor userAdminAccessor)
+        {
+            this.userAdminAccessor = userAdminAccessor;
+        }
+    
 
         public User GetUser(Guid userId)
         {
-            using (PromoRepository db = new PromoRepository())
-            {
-                return db.Users.FirstOrDefault(_user => _user.Id == userId);
-            }
+          
+                return userAdminAccessor.GetUser(userId);
+           
         }
 
         public User SaveUser(User user)
         {
-            using (PromoRepository db = new PromoRepository())
-            {
-                if (user.Id == Guid.Empty)
-                {
-                    db.Users.Add(user);
-                }
-                else
-                {
-                    db.Users.Attach(user);
-                    db.Entry(user).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                }
-                db.SaveChanges();
-            }
-
-            return user;
+          
+            return userAdminAccessor.SaveUser(user);
         }
 
         public IEnumerable<User> GetAllUsers()
         {
-            using (PromoRepository db = new PromoRepository())
-            {
-                return db.Users.ToList();
-            }
+            return userAdminAccessor.GetAllUsers();
         }
     }
 }

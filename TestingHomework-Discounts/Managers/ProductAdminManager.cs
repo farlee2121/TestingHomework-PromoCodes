@@ -2,43 +2,52 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using TestingHomework.Tests.Accessors;
 
 namespace TestingHomework_Discounts.Managers
 {
-    public class ProductAdminManager
+    public interface IProductAdminManager
     {
+        IEnumerable<Product> GetAllProducts();
+
+        Product SaveProduct(Product product);
+
+        Product GetProduct(Guid productId);
+    }
+    public class ProductAdminManager: IProductAdminManager
+    {
+
+        IProductAdminAccessor productAdminAccessor;
+        public ProductAdminManager(IProductAdminAccessor productAdminAccessor)
+        {
+            this.productAdminAccessor = productAdminAccessor;
+        }
+
+
         public IEnumerable<Product> GetAllProducts()
         {
             using (PromoRepository db = new PromoRepository())
             {
-                return db.Products.ToList();
+                return productAdminAccessor.GetAllProducts();
             }
         }
+
 
         public Product SaveProduct(Product product)
         {
             using (PromoRepository db = new PromoRepository())
             {
-                if (product.Id == Guid.Empty)
-                {
-                    db.Products.Add(product);
-                }
-                else
-                {
-                    db.Products.Attach(product);
-                    db.Entry(product).State = Microsoft.EntityFrameworkCore.EntityState.Modified;
-                }
-                db.SaveChanges();
+                return productAdminAccessor.SaveProduct(product);
             }
 
-            return product;
+           
         }
 
         public Product GetProduct(Guid productId)
         {
             using (PromoRepository db = new PromoRepository())
             {
-                return db.Products.FirstOrDefault(_prod => _prod.Id == productId);
+                return productAdminAccessor.GetProduct(productId);
             }
         }
     }
