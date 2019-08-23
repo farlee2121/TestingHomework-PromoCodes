@@ -14,13 +14,12 @@
     <PackageReference Include="MSTest.TestFramework" Version="1.4.0" />
     <PackageReference Include="NUnit" Version="3.11.0" />
     <PackageReference Include="NUnit3TestAdapter" Version="3.13.0" />
-    <PackageReference Include="xunit" Version="2.4.0" />
-    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Accessors.DatabaseAccessors\Accessors.DatabaseAccessors.csproj" />
+    <ProjectReference Include="..\Shared.DependencyInjectionKernel\Shared.DependencyInjectionKernel.csproj" />
     <ProjectReference Include="..\Test.NUnitExtensions\Test.NUnitExtensions.csproj" />
-    <ProjectReference Include="..\TestingHomework-Discounts\TestingHomework-Discounts.csproj" />
     <ProjectReference Include="..\Tests.TestBases\Tests.TestBases.csproj" />
   </ItemGroup>
 

@@ -5,11 +5,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Bogus" Version="26.0.2" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.2.4" />
+    <PackageReference Include="Ninject" Version="3.3.4" />
   </ItemGroup>
 
+
   <ItemGroup>
+    <ProjectReference Include="..\Shared.DataContracts\Shared.DataContracts.csproj" />
     <ProjectReference Include="..\Shared.DatabaseContext\Shared.DatabaseContext.csproj" />
   </ItemGroup>
 

@@ -7,7 +7,7 @@ namespace Tests
 {
     public abstract class AccessorTestBase
     {
-        protected ProductDataPrep dataPrep = new ProductDataPrep(true);
+        protected DiscountsDataPrep dataPrep = new DiscountsDataPrep(true);
 
         protected TransactionScope _transactionScope;
         [SetUp]

@@ -7,7 +7,9 @@ namespace Tests.ManagerTests
 {
     public abstract class ManagerTestBase
     {
-        protected ProductDataPrep dataPrep = new ProductDataPrep(false);
+        protected DiscountsDataPrep dataPrep = new DiscountsDataPrep(true);
+      
+
         TransactionScope _transactionScope;
 
         public abstract void OnInitialize();

@@ -1,4 +1,6 @@
-﻿using TestingHomework_Discounts;
+﻿
+
+using Shared.DatabaseContext;
 
 namespace Tests.DataPrep
 {
@@ -19,7 +21,7 @@ namespace Tests.DataPrep
         public T Create<T>(T entity) where T : class
         {
 
-            using (PromoRepository db = new PromoRepository())
+            using (TestingHomeworkContext db = new TestingHomeworkContext())
             {
                 db.Set<T>().Add(entity);
                 db.SaveChanges();
@@ -32,7 +34,7 @@ namespace Tests.DataPrep
 
         public void EnsureDatastore()
         {
-            PromoRepository database = new PromoRepository();
+            TestingHomeworkContext database = new TestingHomeworkContext();
             database.Database.EnsureCreated();
         }
     }

@@ -1,15 +1,18 @@
-﻿
-namespace Tests.DataPrep
+﻿namespace Tests.DataPrep
 {
-    public class ProductDataPrep
+    public class DiscountsDataPrep
     {
         ITestDataAccessor dataPersistance;       
 
-        public ProductPrep Product { get; set; }
-        public ProductListPrep ProductLists { get; set; }
-        public ProductItemPrep ProductItems { get; set; }
+        public ProductPrep Products { get; set; }
+        public PromoCodePrep Promocodes { get; set; }
+        public UserPrep Users { get; set; }
+        public PromoErrorPrep PromoErrors { get; set; }
+        public CartPrep Carts { get; set; }
+        public CartProductPrep CartProducts { get; set; }
+        public CartPromoPrep CartPromos { get; set; }
 
-        public ProductDataPrep(bool shouldPersistData)
+        public DiscountsDataPrep(bool shouldPersistData)
         {
             if (shouldPersistData)
             {
@@ -20,9 +23,13 @@ namespace Tests.DataPrep
                 dataPersistance = new NoPersistanceTestDataAccessor();
             }
 
-            Product = new ProductPrep(dataPersistance);
-            ProductLists = new ProductListPrep(dataPersistance, Product);
-            ProductItems = new ProductItemPrep(dataPersistance, ProductLists);
+            Products = new ProductPrep(dataPersistance);
+            Promocodes = new PromoCodePrep(dataPersistance, Products);           
+            Users = new UserPrep(dataPersistance);
+            PromoErrors = new PromoErrorPrep(dataPersistance);
+            Carts = new CartPrep(dataPersistance, Products, Users, Promocodes, PromoErrors);
+            CartProducts = new CartProductPrep(dataPersistance, Products, Carts);
+            CartPromos = new CartPromoPrep(dataPersistance, Promocodes, Carts);
         }
 
         public void EnsureDatastore()
