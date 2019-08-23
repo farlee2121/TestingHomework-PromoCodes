@@ -1,108 +1,146 @@
-﻿using System;
+﻿using Accessors.DatabaseAccessors;
+using DeepEqual.Syntax;
+using Managers.LazyCollectionOfAllManagers;
+using Ninject;
+using NUnit.Framework;
+using Shared.DatabaseContext;
+using Shared.DatabaseContext.DBOs;
+using Shared.DataContracts;
+using Shared.DependencyInjectionKernel;
+using System;
 using System.Collections.Generic;
-using System.Text;
-using Xunit;
-using TestingHomework_Discounts.Managers;
-using TestingHomework_Discounts;
 using System.Linq;
+using Telerik.JustMock.AutoMock;
+using Test.NUnitExtensions;
+using Tests.DataPrep;
+using Tests.ManagerTests;
 
 namespace TestingHomework.Tests
 {
-    public class ProductAdminManagerTests
+    //[TestFixture_Prefixed(typeof(ProductAdminManager), false)]
+    [TestFixture_Prefixed(typeof(ProductAdminManager), true)]
+    public class ProductAdminManagerTests : ManagerTestBase
     {
-        ProductAdminManager manager = new ProductAdminManager();
+        ProductAdminManager manager;
+        MockingContainer<ProductAdminManager> mockContainer = new MockingContainer<ProductAdminManager>();
 
-        [Fact]
-        public void GetProduct_NoProduct()
+        public ProductAdminManagerTests() : this(false) { }
+        public ProductAdminManagerTests(bool isIntegration = false)
         {
-
-            var actualEmpty = manager.GetProduct(Guid.Empty);
-            Assert.Null(actualEmpty);
-
+            // this constructor allows for integration test reuse
+            if (isIntegration)
+            {
+                // Implicit self binding allows us to get a concrete class with fulfilled dependencies
+                // https://github.com/ninject/ninject/wiki/dependency-injection-with-ninject
+                Ninject.IKernel kernel = DependencyInjectionLoader.BuildKernel();
+                manager = kernel.Get<ProductAdminManager>();
+                dataPrep = new DiscountsDataPrep(true);
+            }
+            else
+            {
+                manager = mockContainer.Instance;
+                // dataPrep non-persistant by default in base class
+            }
         }
 
-        [Fact]
+        public override void OnCleanup()
+        {
+            using (TestingHomeworkContext db = new TestingHomeworkContext())
+            {
+                foreach (ProductDTO us in db.Products)
+                {
+                    us.IsActive = false;
+                    db.SaveChanges();
+                }
+
+            }
+        }
+
+        public override void OnInitialize()
+        {
+
+        }
+              
+        [Test]
         public void GetProduct_Success()
         {
-            var savedProduct = manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 10.50
-            });
-
-            var actualProduct = manager.GetProduct(savedProduct.Id);
-            Assert.Equal(savedProduct.Id, actualProduct.Id);
-            Assert.Equal(savedProduct.Description, actualProduct.Description);
-            Assert.Equal(savedProduct.Price, actualProduct.Price);
-
+            //// arrange           
+            Product expectedProduct = dataPrep.Products.CreateData();
+            mockContainer.Arrange<IProductAccessor>(accessor => accessor.GetProduct(expectedProduct.Id)).Returns(expectedProduct);
+            //// act
+            Product actualProduct = manager.GetProduct(expectedProduct.Id);
+            ////assert
+            expectedProduct.ShouldDeepEqual(actualProduct);
         }
-
-        [Fact]
-        public void SaveProduct_NewProduct()
-        {
-            var savedProduct = manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 10.50
-            });
-
-            Assert.False(savedProduct.Id == Guid.Empty);
-            Assert.Equal("asdfas", savedProduct.Description);
-            Assert.Equal(10.50, savedProduct.Price);
-        }
-
-        [Fact]
-        public void SaveProduct_UpdateProduct()
-        {
-            var existingProduct = manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 10.50
-            });
-
-            existingProduct.Price = 1.00;
-
-            var updatedProduct = manager.SaveProduct(existingProduct);
-
-            Assert.Equal(existingProduct.Id, updatedProduct.Id);
-            Assert.Equal("asdfas", existingProduct.Description);
-            Assert.Equal(1.00, existingProduct.Price);
-        }
-
-        [Fact]
+        
+        [Test]
         public void GetAllProducts()
         {
-            List<Product> expectedProducts = new List<Product>();
-            expectedProducts.Add(manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 10.50
-            }));
+            // arrange
+            int expectedItemCount = 5;
+            IEnumerable<Product> expectedProducts = dataPrep.Products.CreateManyForList(expectedItemCount);
 
-            expectedProducts.Add(manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 11
-            }));
+            mockContainer.Arrange<IProductAccessor>(accessor => accessor.GetAllProducts()).Returns(expectedProducts);
 
-            expectedProducts.Add(manager.SaveProduct(new Product()
-            {
-                Description = "asdfas",
-                Price = 1
-            }));
+            //// act
+            IEnumerable<Product> actualProductList = manager.GetAllProducts();
 
-            var actualProductList = manager.GetAllProducts();
+            ////assert
+            Assert.AreEqual(expectedProducts.Count(), actualProductList.Count());
+            expectedProducts.ShouldDeepEqual(actualProductList);
+        }
 
+        [Test]
+        public void SaveProduct_NewProduct()
+        {
+            // arrange
+            Product expectedProduct = dataPrep.Products.CreateData(isPersisted: false);
 
-            Assert.Equal(expectedProducts.Count, actualProductList.Count());
-            foreach (Product expectedProduct in actualProductList)
-            {
-                var actualProduct = actualProductList.FirstOrDefault(_product => _product.Id == expectedProduct.Id);
-                Assert.NotNull(actualProduct);
-                Assert.Equal(expectedProduct.Id, actualProduct.Id);
-                Assert.Equal(expectedProduct.Description, actualProduct.Description);
-                Assert.Equal(expectedProduct.Price, actualProduct.Price);
-            }
+            mockContainer.Arrange<IProductAccessor>(accessor => accessor.SaveProduct(expectedProduct)).Returns(new SaveResult<Product>(expectedProduct));
+
+            // act
+            SaveResult<Product> actualProductResult = manager.SaveProduct(expectedProduct);
+            Product actualProduct = actualProductResult.Result;
+
+            //assert
+            //Assert.False(actualProduct.Id == Guid.Empty);
+            Assert.IsTrue(actualProductResult.Success);
+            expectedProduct.WithDeepEqual(actualProduct).IgnoreSourceProperty((p) => p.Id);
+        }
+
+        [Test]
+        public void SaveProduct_UpdateProduct()
+        {
+            // arrange
+            Product expectedProduct = dataPrep.Products.CreateData();
+            expectedProduct.Description = Guid.NewGuid().ToString();
+
+            mockContainer.Arrange<IProductAccessor>(accessor => accessor.SaveProduct(expectedProduct)).Returns(new SaveResult<Product>(expectedProduct));
+
+            // act
+            SaveResult<Product> actualProductResult = manager.SaveProduct(expectedProduct);
+            Product actualProduct = actualProductResult.Result;
+
+            //assert            
+            Assert.IsTrue(actualProductResult.Success);
+            Assert.AreEqual(expectedProduct.Id, actualProduct.Id);
+            expectedProduct.ShouldDeepEqual(actualProduct);
+        }
+
+        [Test]
+        public void DeleteProduct()
+        {
+            //// arrange           
+            Product expectedProduct = dataPrep.Products.CreateData();
+            mockContainer.Arrange<IProductAccessor>(accessor => accessor.DeleteProduct(expectedProduct.Id)).Returns(expectedProduct);
+            //// act
+            DeleteResult deleteProductResult = manager.DeleteProduct(expectedProduct.Id);
+            ////assert
+       
+            Assert.IsTrue(deleteProductResult.Success);
+
+            Product retrievableProduct = manager.GetProduct(expectedProduct.Id);
+            Assert.IsNull(retrievableProduct);
         }
     }
 }

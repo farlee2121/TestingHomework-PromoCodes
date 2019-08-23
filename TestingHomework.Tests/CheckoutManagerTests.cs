@@ -1,76 +1,133 @@
-﻿using System;
+﻿using Accessors.DatabaseAccessors;
+using DeepEqual.Syntax;
+using Managers.LazyCollectionOfAllManagers;
+using Ninject;
+using NUnit.Framework;
+using Shared.DataContracts;
+using Shared.DependencyInjectionKernel;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using TestingHomework_Discounts;
-using TestingHomework_Discounts.Managers;
-using Xunit;
+using Telerik.JustMock.AutoMock;
+using Test.NUnitExtensions;
+using Tests.DataPrep;
+using Tests.ManagerTests;
 
 namespace TestingHomework.Tests
 {
-    public class CheckoutManagerTests
+    //[TestFixture_Prefixed(typeof(CheckoutManager), false)]
+    [TestFixture_Prefixed(typeof(CheckoutManager), true)]
+    public class CheckoutManagerTests : ManagerTestBase
     {
-        CheckoutManager manager = new CheckoutManager();
+        CheckoutManager manager;
+        MockingContainer<CheckoutManager> mockContainer = new MockingContainer<CheckoutManager>();
 
-        [Fact]
+        public CheckoutManagerTests() : this(false) { }
+        public CheckoutManagerTests(bool isIntegration = false)
+        {
+            // this constructor allows for integration test reuse
+            if (isIntegration)
+            {
+                // Implicit self binding allows us to get a concrete class with fulfilled dependencies
+                // https://github.com/ninject/ninject/wiki/dependency-injection-with-ninject
+                Ninject.IKernel kernel = DependencyInjectionLoader.BuildKernel();
+                manager = kernel.Get<CheckoutManager>();
+                dataPrep = new DiscountsDataPrep(true);
+            }
+            else
+            {
+                manager = mockContainer.Instance;
+                // dataPrep non-persistant by default in base class
+            }
+        }
+
+        public override void OnCleanup()
+        {
+
+        }
+        
+
+        public override void OnInitialize()
+        {
+
+        }
+
+        [Test]
+        public void RedeemPromo()
+        {        
+            // arrange
+            IEnumerable<Product> products = dataPrep.Products.CreateManyForList(1, false);
+
+            PromoCode promoCode = dataPrep.Promocodes.CreateData(products.FirstOrDefault(),true);
+            ICollection<PromoCode> promoCodes = new List<PromoCode>();
+            promoCodes.Add(promoCode);
+            Cart cart = dataPrep.Carts.CreateData(products, null, null, isPersisted: true);
+
+            mockContainer.Arrange<ICheckoutAccessor>(accessor => accessor.RedeemPromo(promoCode.Code,cart)).Returns(new SaveResult<Cart>(cart));
+
+            // act
+            SaveResult<Cart> actualUserResult = manager.RedeemPromo(promoCode.Code,cart);
+            Cart actualCart = actualUserResult.Result;
+
+            //assert
+            Assert.IsTrue(actualUserResult.Success);
+            actualCart.PromoCodes.Contains(promoCode);
+        }
+
+
+
+        [Test]
+        public void CalculateDiscounts()
+        {
+            //// arrange           
+            Cart cart = dataPrep.Carts.CreateData(null, null, null, isPersisted: true);
+
+            mockContainer.Arrange<ICheckoutAccessor>(accessor => accessor.CalculateDiscounts(cart)).Returns(cart);
+            ////// act
+            SaveResult<CartDiscountResult> actualCartDiscountResult = manager.CalculateDiscounts(cart);
+            CartDiscountResult actualCartDiscount = actualCartDiscountResult.Result;
+
+            //////assert
+            Assert.IsTrue(actualCartDiscountResult.Success);
+        }
+
+
+        [Test]
         public void GetUserCart()
         {
-            UserAdminManager userManager = new UserAdminManager();
-            User cartUser = userManager.SaveUser(new User()
-            {
-                FirstName = "Sam",
-                LastName = "Willis"
-            });
+            //// arrange           
+            Cart cart = dataPrep.Carts.CreateData(null, null, null, isPersisted: true);
+            Product products = dataPrep.Products.CreateData(false);
+            CartProduct cartProduct = dataPrep.CartProducts.CreateData(products, cart);
 
-            ProductAdminManager productManager = new ProductAdminManager();
-            List<Product> cartProducts = new List<Product>();
-            cartProducts.Add(productManager.SaveProduct(new Product()
-            {
-                Price = 1,
-                Description = "Waffles"
-            }));
+            Product productforPromo = dataPrep.Products.CreateData(false);
+            PromoCode promoCode = dataPrep.Promocodes.CreateData(productforPromo,false);
 
-            cartProducts.Add(productManager.SaveProduct(new Product()
-            {
-                Price = .50,
-                Description = "Pancakes"
-            }));
+            CartPromo cartPromo = dataPrep.CartPromos.CreateData(promoCode, cart);
 
-            PromoAdminManager promoManager = new PromoAdminManager();
-            List<PromoCode> cartPromos = new List<PromoCode>();
-            cartPromos.Add(promoManager.SavePromo(new PromoCode()
-            {
-                Code = "1OFF",
-                DollarDiscount = 1,
-            }));
+            mockContainer.Arrange<ICheckoutAccessor>(accessor => accessor.GetUserCart(cart.UserId)).Returns(cart.UserId);
+            ////// act
+            SaveResult<Cart> actualCartResult = manager.GetUserCart(cart.UserId);
+            Cart actualCart = actualCartResult.Result;
 
+            //////assert
+            Assert.IsTrue(actualCartResult.Success);
+        }
 
-            Cart expectedCart = new Cart()
-            {
-                User = cartUser,
-                Products = cartProducts,
-                PromoCodes = cartPromos,
-            };
+        [Test]
+        public void SaveCart()
+        {
+            // arrange
+            Cart expectedCart = dataPrep.Carts.CreateData(isPersisted: false);
 
-            Cart savedCart = manager.SaveCart(expectedCart);
+            mockContainer.Arrange<ICheckoutAccessor>(accessor => accessor.SaveCart(expectedCart)).Returns(new SaveResult<Cart>(expectedCart));
 
-            Cart actualCart = manager.GetUserCart(cartUser.Id);
+            // act
+            SaveResult<Cart> actualCartResult = manager.SaveCart(expectedCart);
+            Cart actualCart = actualCartResult.Result;
 
-            Assert.Equal(savedCart.User.Id, actualCart.User.Id);
-
-            Assert.Equal(expectedCart.Products.Count(), actualCart.Products.Count());
-            foreach (Product expectedProduct in savedCart.Products)
-            {
-                var actualProduct = actualCart.Products.FirstOrDefault(actual => actual.Id == expectedProduct.Id);
-                Assert.NotNull(actualProduct);
-            }
-
-            Assert.Equal(expectedCart.PromoCodes.Count(), actualCart.PromoCodes.Count());
-            foreach (PromoCode expectedPromo in savedCart.PromoCodes)
-            {
-                var actualPromo = actualCart.PromoCodes.FirstOrDefault(actual => actual.Id == expectedPromo.Id);
-                Assert.NotNull(actualPromo);
-            }
+            //assert
+            Assert.IsTrue(actualCartResult.Success);
+            expectedCart.WithDeepEqual(actualCart).IgnoreSourceProperty((p) => p.Id);
         }
     }
 }
